@@ -10,5 +10,5 @@
 vim.api.nvim_create_user_command("CP", function()
   local template = vim.fn.expand("~/.config/nvim/templates/cp_template.cpp")
   vim.cmd("0r " .. template)
-  vim.api.nvim_win_set_cursor(0, { 45, 0 })
+  vim.api.nvim_win_set_cursor(0, { 24, 0 })
 end, {})
