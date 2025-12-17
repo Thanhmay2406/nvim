@@ -12,3 +12,19 @@ vim.api.nvim_create_user_command("CP", function()
   vim.cmd("0r " .. template)
   vim.api.nvim_win_set_cursor(0, { 24, 0 })
 end, {})
+
+-- vim.api.nvim_create_autocmd("ColorScheme", {
+--   callback = function()
+--     local groups = {
+--       "Normal",
+--       "NormalNC",
+--       "SignColumn",
+--       "EndOfBuffer",
+--       "NormalFloat",
+--       "FloatBorder",
+--     }
+--     for _, g in ipairs(groups) do
+--       vim.api.nvim_set_hl(0, g, { bg = "none" })
+--     end
+--   end,
+-- })
