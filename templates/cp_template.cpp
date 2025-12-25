@@ -6,7 +6,7 @@
 #define fi first
 #define se second
 #define all(x) x.begin(), x.end()
-#define MASK(k, i) (k >> i) & 1
+#define BIT(k, i) (k >> i) & 1
 
 #define REP(i, n) for (int i = 0, _n = (n); i < _n; i++)
 #define FOR(i, a, b) for (int i = (a), _b = (b); i <= _b; i++)
