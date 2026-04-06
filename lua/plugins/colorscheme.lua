@@ -4,7 +4,7 @@ return {
     name = "tokyonight",
     priority = 1000,
     opts = {
-      transparent = true, -- Giữ trong suốt
+      transparent = false, -- Giữ trong suốt
       styles = {
         sidebars = "transparent",
         floats = "transparent",
