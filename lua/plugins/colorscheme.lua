@@ -4,7 +4,7 @@ return {
     name = "tokyonight",
     priority = 1000,
     opts = {
-      transparent = false, -- Giữ trong suốt
+      transparent = true, -- Giữ trong suốt
       styles = {
         sidebars = "transparent",
         floats = "transparent",
@@ -41,9 +41,29 @@ return {
     "catppuccin/nvim",
     name = "catppuccin",
     priority = 800,
+    lazy = false,
     opts = {
-      transparent_background = true, -- Giữ trong suốt
+      transparent_background = true,
+
+      integrations = {
+        treesitter = true,
+        native_lsp = {
+          enabled = true,
+        },
+      },
+
+      highlight_overrides = {
+        all = function(colors)
+          return {
+            Normal = { bg = "NONE" },
+            NormalFloat = { bg = "NONE" },
+          }
+        end,
+      },
     },
+    config = function(_, opts)
+      require("catppuccin").setup(opts)
+    end,
   },
   {
     "rose-pine/neovim",
