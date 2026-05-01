@@ -3,7 +3,7 @@
 A starter template for [LazyVim](https://github.com/LazyVim/LazyVim).
 Refer to the [documentation](https://lazyvim.github.io/installation) to get started.
 
-<video src="https://github.com/Thanhmay2406/nvim/raw/main/demo/preview.mp4" width="600" controls="controls">
+<video src="https://github.com/Thanhmay2406/nvim/tree/main/demo/preview.mp4" width="600" controls="controls">
   Trình duyệt của bạn không hỗ trợ xem video trực tiếp.
 </video>
 
