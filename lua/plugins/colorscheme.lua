@@ -13,7 +13,7 @@ return {
         "rose-pine",
       }
       local current_theme_index = 2
-      local is_transparent = true
+      local is_transparent = false
 
       -- ========================
       -- APPLY THEME FUNCTION
