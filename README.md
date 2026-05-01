@@ -3,9 +3,11 @@
 A starter template for [LazyVim](https://github.com/LazyVim/LazyVim).
 Refer to the [documentation](https://lazyvim.github.io/installation) to get started.
 
-<video src="https://github.com/Thanhmay2406/nvim/blob/main/demo/preview.mp4" width="600" controls="controls">
-  Trình duyệt của bạn không hỗ trợ xem video trực tiếp.
-</video>
+
+
+https://github.com/user-attachments/assets/891fa957-b447-40a9-8c8f-443c64e5ab51
+
+
 
 # Install for Arch linux
 
