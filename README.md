@@ -7,9 +7,10 @@ Plugin được cài trực tiếp bằng `vim.pack`, không cần plugin manage
 
 - Giao diện Catppuccin Mocha với nền trong suốt.
 - Gợi ý code, tài liệu và signature help bằng `blink.cmp`.
-- LSP cho Lua, C/C++, Rust và Go.
+- LSP cho Lua, C/C++, Rust, Go và Markdown.
 - Tự động cài LSP server bằng Mason.
 - Highlight cú pháp bằng Treesitter.
+- Render Markdown, ảnh, công thức LaTeX và sơ đồ Mermaid ngay trong Kitty.
 - Tìm file, buffer, nội dung và tài liệu bằng Telescope.
 - Tự đóng ngoặc và dấu nháy bằng `nvim-autopairs`.
 - Hiển thị nhóm phím tắt bằng `which-key.nvim`.
@@ -17,13 +18,36 @@ Plugin được cài trực tiếp bằng `vim.pack`, không cần plugin manage
 
 ## Yêu cầu
 
+### Chung
+
 - Neovim có hỗ trợ `vim.pack` và `vim.lsp.config`.
 - `git` để tải plugin.
 - `ripgrep` để Telescope tìm kiếm nội dung bằng live grep.
 - Một công cụ clipboard như `xclip`, `xsel` hoặc `win32yank`.
 - Nerd Font để hiển thị icon.
 
-Cấu hình hiện tại đã được kiểm tra với Neovim `0.12.2`.
+### Markdown
+
+- Kitty để hiển thị ảnh inline trong terminal.
+- ImageMagick để chuyển đổi định dạng ảnh.
+- Mermaid CLI (`mmdc`) để generate sơ đồ Mermaid.
+- Google Chrome hoặc Chromium để Mermaid CLI generate hình ảnh.
+- Tectonic hoặc `pdflatex` để render công thức LaTeX.
+- Tree-sitter CLI để cài parser `latex`.
+
+Trên Arch Linux, có thể cài các dependency Markdown bằng:
+
+```sh
+sudo pacman -S --needed kitty imagemagick tectonic tree-sitter-cli chromium nodejs npm
+sudo npm install -g @mermaid-js/mermaid-cli
+```
+
+Nếu đã cài Google Chrome thì không cần cài thêm Chromium. Module Markdown tự
+động tìm `google-chrome-stable`, `google-chrome`, `chromium` hoặc
+`chromium-browser`.
+
+Cấu hình hiện tại đã được kiểm tra với Neovim `0.12.2`, Kitty `0.47.1`,
+Tectonic `0.16.9`, Tree-sitter CLI `0.26.9` và Mermaid CLI `11.15.0`.
 
 ## Cài đặt
 
@@ -35,8 +59,8 @@ git clone <repository-url> ~/.config/nvim
 nvim
 ```
 
-Trong lần khởi động đầu tiên, `vim.pack` sẽ tải và nạp plugin. Mason tiếp tục
-cài các LSP server đã khai báo.
+Trong lần khởi động đầu tiên, `vim.pack` tải và nạp plugin. Mason tiếp tục cài
+các LSP server đã khai báo, bao gồm `marksman` cho Markdown.
 
 Để cài các Treesitter parser được cấu hình sẵn, chạy lệnh sau bên trong
 Neovim:
@@ -62,6 +86,7 @@ Neovim:
         ├── colorscheme.lua
         ├── completion.lua
         ├── lsp.lua
+        ├── markdown.lua
         ├── telescope.lua
         ├── treesitter.lua
         └── which-key.lua
@@ -82,6 +107,8 @@ còn phần cài đặt và thiết lập plugin nằm trong `lua/config/plugins
 | [mason-org/mason-lspconfig.nvim](https://github.com/mason-org/mason-lspconfig.nvim) | Kết nối Mason với LSP |
 | [WhoIsSethDaniel/mason-tool-installer.nvim](https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim) | Tự động cài LSP server |
 | [nvim-treesitter/nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) | Parsing và highlight cú pháp |
+| [folke/snacks.nvim](https://github.com/folke/snacks.nvim) | Hiển thị ảnh, LaTeX và Mermaid inline trong Kitty |
+| [MeanderingProgrammer/render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) | Render thành phần Markdown trong buffer |
 | [nvim-telescope/telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) | Tìm kiếm tương tác |
 | [nvim-tree/nvim-web-devicons](https://github.com/nvim-tree/nvim-web-devicons) | Icon cho giao diện plugin |
 | [folke/which-key.nvim](https://github.com/folke/which-key.nvim) | Gợi ý nhóm phím tắt |
@@ -99,6 +126,7 @@ còn phần cài đặt và thiết lập plugin nằm trong `lua/config/plugins
 | C/C++ | `clangd` |
 | Rust | `rust_analyzer` |
 | Go | `gopls` |
+| Markdown | `marksman` |
 
 Các server này được Mason cài tự động khi khởi động Neovim.
 
@@ -108,7 +136,58 @@ Lệnh `:TSInstallConfigured` cài parser cho:
 
 ```text
 lua, vim, vimdoc, c, cpp, python, javascript, typescript,
-html, css, json, markdown, markdown_inline
+html, css, json, markdown, markdown_inline, yaml, latex
+```
+
+## Markdown
+
+`render-markdown.nvim` cải thiện cách hiển thị heading, bảng, checkbox, quote,
+code block và link. `snacks.nvim` sử dụng Kitty Graphics Protocol để hiển thị
+ảnh, công thức LaTeX và sơ đồ Mermaid ngay trong buffer.
+
+Handler chuyển LaTeX sang ký tự Unicode của `render-markdown.nvim` được tắt để
+tránh render trùng lặp. Công thức LaTeX được `snacks.nvim` biên dịch thành ảnh
+bằng Tectonic.
+
+````markdown
+![Ảnh local](./images/example.png)
+
+```mermaid
+flowchart LR
+  A --> B
+```
+
+```math
+E = mc^2
+```
+````
+
+Lần render LaTeX đầu tiên có thể chậm hơn bình thường vì Tectonic cần tải
+bundle TeX vào cache.
+
+### Kitty và tmux
+
+Khi chạy Neovim trực tiếp trong Kitty, ảnh inline hoạt động qua Kitty Graphics
+Protocol. Nếu dùng tmux, có thể cần thêm cấu hình sau:
+
+```tmux
+set -gq allow-passthrough on
+```
+
+### Kiểm tra
+
+Nếu ảnh, LaTeX hoặc Mermaid không hiển thị, chạy:
+
+```vim
+:checkhealth snacks
+:checkhealth render-markdown
+```
+
+Mermaid CLI cần Chrome hoặc Chromium. Nếu trình duyệt không được tự động tìm
+thấy, đặt biến môi trường trước khi mở Neovim:
+
+```sh
+export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ```
 
 ## Phím tắt

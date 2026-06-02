@@ -18,6 +18,8 @@ local treesitter_languages = {
   "json",
   "markdown",
   "markdown_inline",
+  "yaml",
+  "latex",
 }
 
 local has_treesitter, treesitter = pcall(require, "nvim-treesitter")

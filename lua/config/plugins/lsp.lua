@@ -11,6 +11,7 @@ local lsp_servers = {
   clangd = {},
   rust_analyzer = {},
   gopls = {},
+  marksman = {},
 }
 
 pack.add({

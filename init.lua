@@ -7,6 +7,7 @@ require("config.keymaps")
 
 require("config.plugins.colorscheme")
 require("config.plugins.treesitter")
+require("config.plugins.markdown")
 require("config.plugins.autopairs")
 require("config.plugins.completion")
 require("config.plugins.lsp")
