@@ -16,4 +16,4 @@ require("config.plugins.telescope")
 require("config.plugins.which-key")
 
 -- Uncomment to enable automatic plugin updates.
-vim.pack.update()
+-- vim.pack.update()

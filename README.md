@@ -15,6 +15,7 @@ Plugin được cài trực tiếp bằng `vim.pack`, không cần plugin manage
 - Tìm file, buffer, nội dung và tài liệu bằng Telescope.
 - Tự đóng ngoặc và dấu nháy bằng `nvim-autopairs`.
 - Hiển thị nhóm phím tắt bằng `which-key.nvim`.
+- Fold theo indentation và mở sẵn khi vào file.
 - Lưu undo history và đồng bộ clipboard với hệ điều hành.
 
 ## Yêu cầu
@@ -334,6 +335,17 @@ Phím leader là `<Space>`.
 | `<Esc>` | Normal | Xóa highlight của kết quả tìm kiếm |
 | `<Space>tt` | Normal | Bật hoặc tắt nền trong suốt |
 
+### Fold
+
+Sử dụng phím mặc định của Neovim cho fold. `which-key` không chặn prefix `z`.
+
+| Phím | Chức năng |
+| --- | --- |
+| `za` | Đóng hoặc mở fold tại vị trí hiện tại |
+| `zA` | Đóng hoặc mở fold hiện tại và các fold lồng nhau |
+| `zM` | Đóng tất cả fold |
+| `zR` | Mở tất cả fold |
+
 ### Telescope
 
 | Phím | Chức năng |
@@ -375,6 +387,7 @@ Các phím sau khả dụng khi LSP đã attach vào buffer:
 
 - Hiển thị line number tuyệt đối và tương đối.
 - Sử dụng indentation 2 spaces và chuyển tab thành spaces.
+- Fold được tính theo indentation với `foldmethod=indent` và mở sẵn nhờ `foldlevel=99`.
 - Hiển thị ký tự whitespace.
 - Luôn hiển thị sign column cho diagnostic.
 - Hiển thị diagnostic bằng icon và virtual text.
