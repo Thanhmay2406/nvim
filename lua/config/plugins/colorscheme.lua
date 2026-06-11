@@ -5,7 +5,7 @@ pack.add({
 })
 
 local has_catppuccin, catppuccin = pcall(require, "catppuccin")
-local transparent_background = true
+local transparent_background = true;
 
 local function setup_catppuccin()
   catppuccin.setup({

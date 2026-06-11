@@ -11,6 +11,7 @@ Plugin được cài trực tiếp bằng `vim.pack`, không cần plugin manage
 - Tự động cài LSP server bằng Mason.
 - Highlight cú pháp bằng Treesitter.
 - Render Markdown, ảnh, công thức LaTeX và sơ đồ Mermaid ngay trong Kitty.
+- Chạy Python theo kiểu Jupyter notebook ngay trong `.py` bằng `molten-nvim`.
 - Tìm file, buffer, nội dung và tài liệu bằng Telescope.
 - Tự đóng ngoặc và dấu nháy bằng `nvim-autopairs`.
 - Hiển thị nhóm phím tắt bằng `which-key.nvim`.
@@ -25,6 +26,17 @@ Plugin được cài trực tiếp bằng `vim.pack`, không cần plugin manage
 - `ripgrep` để Telescope tìm kiếm nội dung bằng live grep.
 - Một công cụ clipboard như `xclip`, `xsel` hoặc `win32yank`.
 - Nerd Font để hiển thị icon.
+- Python 3 với `venv` để tạo Python host riêng cho Neovim.
+
+### Notebook Python
+
+- Jupyter kernel `python3`.
+- Gói Python `pynvim`, `jupyter_client`, `nbformat` và `jupytext`.
+- `kitty` và ImageMagick nếu muốn render plot/ảnh inline từ Molten.
+- Gói Python `cairosvg` và `pillow` trong Python host của Neovim để hỗ trợ ảnh tốt hơn.
+
+Trong repo này, Neovim sẽ tự dùng Python host tại `.venv-nvim/bin/python` nếu thư
+mục đó tồn tại.
 
 ### Markdown
 
@@ -107,6 +119,7 @@ còn phần cài đặt và thiết lập plugin nằm trong `lua/config/plugins
 | [mason-org/mason-lspconfig.nvim](https://github.com/mason-org/mason-lspconfig.nvim) | Kết nối Mason với LSP |
 | [WhoIsSethDaniel/mason-tool-installer.nvim](https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim) | Tự động cài LSP server |
 | [nvim-treesitter/nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) | Parsing và highlight cú pháp |
+| [benlubas/molten-nvim](https://github.com/benlubas/molten-nvim) | Chạy code qua Jupyter kernel ngay trong buffer |
 | [folke/snacks.nvim](https://github.com/folke/snacks.nvim) | Hiển thị ảnh, LaTeX và Mermaid inline trong Kitty |
 | [MeanderingProgrammer/render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) | Render thành phần Markdown trong buffer |
 | [nvim-telescope/telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) | Tìm kiếm tương tác |
@@ -138,6 +151,126 @@ Lệnh `:TSInstallConfigured` cài parser cho:
 lua, vim, vimdoc, c, cpp, python, javascript, typescript,
 html, css, json, markdown, markdown_inline, yaml, latex
 ```
+
+## Notebook Python
+
+Workflow được cấu hình theo hướng `Jupytext + Molten`:
+
+- Soạn notebook trong file `.py`.
+- Chia cell bằng marker `# %%`.
+- Chạy cell qua Jupyter kernel ngay trong Neovim.
+- Đồng bộ qua lại với `.ipynb` bằng `jupytext`.
+- Giữ source ở dạng text để dễ đọc diff và commit bằng Git.
+
+Ví dụ:
+
+```python
+# %%
+import math
+
+math.sqrt(144)
+
+# %%
+for i in range(3):
+  print(i)
+```
+
+### Cài dependency Python
+
+Tạo Python host riêng cho Neovim:
+
+```sh
+python3 -m venv ~/.config/nvim/.venv-nvim
+~/.config/nvim/.venv-nvim/bin/python -m pip install pynvim jupyter_client nbformat jupytext cairosvg pillow
+```
+
+### Chuẩn bị file notebook
+
+Tạo file `.py` và chia cell bằng `# %%`:
+
+```python
+# %%
+import pandas as pd
+
+df = pd.DataFrame({"x": [1, 2, 3]})
+df
+
+# %%
+df["x"].mean()
+```
+
+Nếu muốn làm việc song song với Jupyter Notebook, mở file đó trong Neovim rồi
+chạy:
+
+```vim
+:JupytextPair
+```
+
+Lệnh này pair file hiện tại với notebook `.ipynb` tương ứng theo format
+`ipynb,py:percent`.
+
+### Chạy notebook trong Neovim
+
+1. Mở file Python notebook, ví dụ `analysis.py`.
+2. Khởi tạo kernel bằng `<Space>ji` hoặc `:MoltenInit`.
+3. Đưa con trỏ vào cell muốn chạy.
+4. Chạy cell hiện tại bằng `<Space>jc`.
+5. Nếu cần xem output trong cửa sổ riêng, dùng `<Space>jo`.
+6. Nếu muốn di chuyển vào cửa sổ output, dùng `<Space>je`.
+
+Cell hiện tại được xác định từ vị trí con trỏ đến các marker `# %%` gần nhất ở
+phía trên và phía dưới.
+
+### Đồng bộ với `.ipynb`
+
+- Pair lần đầu: `<Space>jp` hoặc `:JupytextPair`
+- Đồng bộ lại giữa `.py` và `.ipynb`: `<Space>js` hoặc `:JupytextSync`
+- Export file `.py` hiện tại sang `.ipynb`: `<Space>jb` hoặc `:JupytextToIpynb`
+
+`JupytextSync` sẽ lấy nội dung từ file mới hơn giữa cặp `.py` và `.ipynb`.
+
+### Workflow gợi ý
+
+1. Viết notebook chính trong `analysis.py`.
+2. Chạy cell trực tiếp trong Neovim bằng Molten.
+3. Khi cần chia sẻ với người dùng Jupyter, chạy `<Space>js`.
+4. Khi cần mở lại trong JupyterLab hoặc Notebook, dùng file `.ipynb` đã sync.
+
+### Điều khiển khi chạy cell
+
+- `<Space>jl` chạy dòng hiện tại.
+- `<Space>jr` chạy lại cell Molten đang active.
+- `<Space>jx` gửi interrupt tới kernel đang chạy.
+- `<Space>jd` xóa cell Molten đang active khỏi buffer state.
+- `<Space>jv` chạy vùng chọn visual.
+- `]j` và `[j` di chuyển giữa các marker `# %%`.
+
+### Lưu ý
+
+- Output không tự bật khi chạy cell. Dùng `<Space>jo` để mở output khi cần.
+- Plot và image output từ Jupyter được render inline qua `image.nvim` với backend `kitty`.
+- Nếu plot không hiện, kiểm tra lại terminal phải là Kitty và `magick` phải có trong `PATH`.
+- `Jupytext` được ưu tiên gọi từ `.venv-nvim/bin/jupytext` nếu file đó tồn tại.
+- Các phím dưới đây chỉ áp dụng cho buffer `python`.
+
+### Phím tắt
+
+| Phím | Chức năng |
+| --- | --- |
+| `<Space>ji` | Khởi tạo Jupyter kernel |
+| `<Space>jc` | Chạy cell hiện tại, nhận diện bằng marker `# %%` |
+| `<Space>jl` | Chạy dòng hiện tại |
+| `<Space>jr` | Chạy lại cell Molten đang active |
+| `<Space>jo` | Mở cửa sổ output |
+| `<Space>je` | Đi vào cửa sổ output |
+| `<Space>jx` | Interrupt kernel |
+| `<Space>jd` | Xóa cell Molten đang active |
+| `<Space>jv` | Chạy vùng chọn visual |
+| `<Space>jp` | Pair file hiện tại với `.ipynb` bằng Jupytext |
+| `<Space>js` | Sync file pair bằng Jupytext |
+| `<Space>jb` | Export file hiện tại sang `.ipynb` |
+| `]j` | Nhảy tới cell marker `# %%` tiếp theo |
+| `[j` | Nhảy tới cell marker `# %%` trước đó |
 
 ## Markdown
 
