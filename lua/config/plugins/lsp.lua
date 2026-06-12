@@ -8,6 +8,15 @@ local lsp_servers = {
       },
     },
   },
+  pyright = {
+    python = {
+      analysis = {
+        autoSearchPaths = true,
+        useLibraryCodeForTypes = true,
+        diagnosticMode = "workspace",
+      },
+    },
+  },
   clangd = {},
   rust_analyzer = {},
   gopls = {},

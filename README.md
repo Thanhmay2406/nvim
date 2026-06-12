@@ -137,6 +137,7 @@ còn phần cài đặt và thiết lập plugin nằm trong `lua/config/plugins
 | Ngôn ngữ | LSP server |
 | --- | --- |
 | Lua | `lua_ls` |
+| Python | `pyright` |
 | C/C++ | `clangd` |
 | Rust | `rust_analyzer` |
 | Go | `gopls` |
