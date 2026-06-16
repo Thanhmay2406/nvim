@@ -6,6 +6,7 @@ pack.add({
 })
 
 local notebook_venv = vim.fn.stdpath("config") .. "/.venv-nvim/bin"
+local kaggle_output_dirname = vim.g.kaggle_output_dirname or "kaggle-output"
 
 vim.g.molten_auto_open_output = false
 vim.g.molten_auto_init_behavior = "init"
@@ -67,6 +68,15 @@ local function current_file_path()
   return path
 end
 
+local function current_file_dir()
+  local path = current_file_path()
+  if not path then
+    return nil
+  end
+
+  return vim.fs.dirname(path)
+end
+
 local function notebook_executable(name)
   local local_path = notebook_venv .. "/" .. name
   if vim.fn.executable(local_path) == 1 then
@@ -97,6 +107,228 @@ local function run_jupytext(args, title)
 
   vim.system(cmd, { text = true }, function(result)
     notify_result(title, result)
+  end)
+end
+
+local function notify(message, level, opts)
+  vim.schedule(function()
+    vim.notify(message, level, opts)
+  end)
+end
+
+local function run_command(cmd, title, opts)
+  opts = opts or {}
+
+  vim.system(cmd, {
+    text = true,
+    cwd = opts.cwd,
+  }, function(result)
+    notify_result(title, result)
+    if result.code == 0 and opts.on_success then
+      opts.on_success(result)
+    end
+  end)
+end
+
+local function notebook_executable_or_error(name)
+  local executable = notebook_executable(name)
+  if executable then
+    return executable
+  end
+
+  vim.notify(("Không tìm thấy lệnh %s. Hãy cài nó trước."):format(name), vim.log.levels.ERROR)
+  return nil
+end
+
+local function metadata_path_from_dir(dir)
+  if not dir then
+    return nil
+  end
+
+  local found = vim.fs.find("kernel-metadata.json", {
+    path = dir,
+    upward = true,
+    stop = vim.fn.expand("~"),
+    type = "file",
+  })[1]
+
+  return found
+end
+
+local function metadata_context()
+  local dir = current_file_dir()
+  if not dir then
+    return nil
+  end
+
+  local metadata_path = metadata_path_from_dir(dir)
+  if metadata_path then
+    return {
+      dir = vim.fs.dirname(metadata_path),
+      metadata_path = metadata_path,
+    }
+  end
+
+  return {
+    dir = dir,
+    metadata_path = nil,
+  }
+end
+
+local function read_json_file(path)
+  if not path then
+    return nil
+  end
+
+  local lines = vim.fn.readfile(path)
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
+
+  local ok, data = pcall(vim.json.decode, table.concat(lines, "\n"))
+  if not ok then
+    notify(("Không đọc được JSON từ %s"):format(path), vim.log.levels.ERROR)
+    return nil
+  end
+
+  return data
+end
+
+local function kernel_ref_from_context(context)
+  if type(vim.g.kaggle_kernel_ref) == "string" and vim.g.kaggle_kernel_ref ~= "" then
+    return vim.g.kaggle_kernel_ref
+  end
+
+  local metadata = read_json_file(context.metadata_path)
+  if type(metadata) == "table" and type(metadata.id) == "string" and metadata.id ~= "" then
+    return metadata.id
+  end
+
+  return nil
+end
+
+local function prompt_kernel_ref(default_ref, callback)
+  vim.schedule(function()
+    vim.ui.input({
+      prompt = "Kaggle kernel ref (owner/slug): ",
+      default = default_ref or "",
+    }, function(input)
+      if not input or vim.trim(input) == "" then
+        vim.notify("Thiếu Kaggle kernel ref.", vim.log.levels.WARN)
+        return
+      end
+
+      callback(vim.trim(input))
+    end)
+  end)
+end
+
+local function resolve_kernel_ref(arg, callback)
+  if arg and vim.trim(arg) ~= "" then
+    callback(vim.trim(arg))
+    return
+  end
+
+  local context = metadata_context()
+  if not context then
+    return
+  end
+
+  local inferred = kernel_ref_from_context(context)
+  if inferred then
+    callback(inferred)
+    return
+  end
+
+  prompt_kernel_ref(nil, callback)
+end
+
+local function kaggle_output_dir(context)
+  return vim.fs.joinpath(context.dir, kaggle_output_dirname)
+end
+
+local function run_kaggle(args, title, opts)
+  local kaggle = notebook_executable_or_error("kaggle")
+  if not kaggle then
+    return
+  end
+
+  local cmd = vim.list_extend({ kaggle }, args)
+  run_command(cmd, title, opts)
+end
+
+local function kaggle_kernel_init()
+  local context = metadata_context()
+  if not context then
+    return
+  end
+
+  if context.metadata_path then
+    vim.notify(
+      ("Đã có kernel-metadata.json tại %s"):format(context.metadata_path),
+      vim.log.levels.INFO,
+      { title = "Kaggle Init" }
+    )
+    return
+  end
+
+  run_kaggle({ "kernels", "init", "-p", context.dir }, "Kaggle Init", { cwd = context.dir })
+end
+
+local function kaggle_kernel_push()
+  local context = metadata_context()
+  if not context then
+    return
+  end
+
+  if not context.metadata_path then
+    vim.notify(
+      "Chưa có kernel-metadata.json. Hãy chạy :KaggleKernelInit trước.",
+      vim.log.levels.ERROR,
+      { title = "Kaggle Push" }
+    )
+    return
+  end
+
+  run_kaggle({ "kernels", "push", "-p", context.dir }, "Kaggle Push", { cwd = context.dir })
+end
+
+local function kaggle_kernel_pull(arg)
+  local context = metadata_context()
+  if not context then
+    return
+  end
+
+  resolve_kernel_ref(arg, function(ref)
+    run_kaggle({ "kernels", "pull", "-p", context.dir, "-m", ref }, "Kaggle Pull", { cwd = context.dir })
+  end)
+end
+
+local function kaggle_kernel_status(arg)
+  resolve_kernel_ref(arg, function(ref)
+    run_kaggle({ "kernels", "status", ref }, "Kaggle Status")
+  end)
+end
+
+local function kaggle_kernel_files(arg)
+  resolve_kernel_ref(arg, function(ref)
+    run_kaggle({ "kernels", "files", ref }, "Kaggle Files")
+  end)
+end
+
+local function kaggle_kernel_output(arg)
+  local context = metadata_context()
+  if not context then
+    return
+  end
+
+  vim.fn.mkdir(kaggle_output_dir(context), "p")
+  resolve_kernel_ref(arg, function(ref)
+    run_kaggle(
+      { "kernels", "output", ref, "-p", kaggle_output_dir(context), "-o" },
+      "Kaggle Output",
+      { cwd = context.dir }
+    )
   end)
 end
 
@@ -163,6 +395,42 @@ vim.api.nvim_create_user_command("JupyterRunCell", evaluate_current_cell, {
   desc = "Run the current # %% cell with Molten",
 })
 
+vim.api.nvim_create_user_command("KaggleKernelInit", kaggle_kernel_init, {
+  desc = "Create kernel-metadata.json in the current notebook directory",
+})
+
+vim.api.nvim_create_user_command("KaggleKernelPush", kaggle_kernel_push, {
+  desc = "Push the current notebook directory to Kaggle and trigger a run",
+})
+
+vim.api.nvim_create_user_command("KaggleKernelPull", function(opts)
+  kaggle_kernel_pull(opts.args)
+end, {
+  desc = "Pull a Kaggle notebook and metadata into the current notebook directory",
+  nargs = "?",
+})
+
+vim.api.nvim_create_user_command("KaggleKernelStatus", function(opts)
+  kaggle_kernel_status(opts.args)
+end, {
+  desc = "Show the latest status for a Kaggle kernel",
+  nargs = "?",
+})
+
+vim.api.nvim_create_user_command("KaggleKernelFiles", function(opts)
+  kaggle_kernel_files(opts.args)
+end, {
+  desc = "List output files from the latest Kaggle kernel run",
+  nargs = "?",
+})
+
+vim.api.nvim_create_user_command("KaggleKernelOutput", function(opts)
+  kaggle_kernel_output(opts.args)
+end, {
+  desc = "Download output files from the latest Kaggle kernel run",
+  nargs = "?",
+})
+
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "python",
   callback = function(event)
@@ -203,6 +471,24 @@ vim.api.nvim_create_autocmd("FileType", {
     }))
     vim.keymap.set("n", "<leader>jb", "<cmd>JupytextToIpynb<CR>", vim.tbl_extend("force", opts, {
       desc = "[J]upytext export note[B]ook",
+    }))
+    vim.keymap.set("n", "<leader>ki", "<cmd>KaggleKernelInit<CR>", vim.tbl_extend("force", opts, {
+      desc = "[K]aggle metadata [I]nit",
+    }))
+    vim.keymap.set("n", "<leader>kp", "<cmd>KaggleKernelPush<CR>", vim.tbl_extend("force", opts, {
+      desc = "[K]aggle [P]ush and run",
+    }))
+    vim.keymap.set("n", "<leader>kl", "<cmd>KaggleKernelPull<CR>", vim.tbl_extend("force", opts, {
+      desc = "[K]aggle pu[L]l notebook",
+    }))
+    vim.keymap.set("n", "<leader>ks", "<cmd>KaggleKernelStatus<CR>", vim.tbl_extend("force", opts, {
+      desc = "[K]aggle [S]tatus",
+    }))
+    vim.keymap.set("n", "<leader>kf", "<cmd>KaggleKernelFiles<CR>", vim.tbl_extend("force", opts, {
+      desc = "[K]aggle list output [F]iles",
+    }))
+    vim.keymap.set("n", "<leader>ko", "<cmd>KaggleKernelOutput<CR>", vim.tbl_extend("force", opts, {
+      desc = "[K]aggle download [O]utput",
     }))
     vim.keymap.set("n", "]j", function()
       vim.fn.search("^%s*# %%", "W")

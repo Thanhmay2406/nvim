@@ -33,6 +33,7 @@ Plugin được cài trực tiếp bằng `vim.pack`, không cần plugin manage
 
 - Jupyter kernel `python3`.
 - Gói Python `pynvim`, `jupyter_client`, `nbformat` và `jupytext`.
+- CLI `kaggle` nếu muốn push/pull notebook lên Kaggle.
 - `kitty` và ImageMagick nếu muốn render plot/ảnh inline từ Molten.
 - Gói Python `cairosvg` và `pillow` trong Python host của Neovim để hỗ trợ ảnh tốt hơn.
 
@@ -186,6 +187,13 @@ python3 -m venv ~/.config/nvim/.venv-nvim
 ~/.config/nvim/.venv-nvim/bin/python -m pip install pynvim jupyter_client nbformat jupytext cairosvg pillow
 ```
 
+Nếu muốn làm việc với Kaggle từ terminal:
+
+```sh
+pip install kaggle
+kaggle auth login
+```
+
 ### Chuẩn bị file notebook
 
 Tạo file `.py` và chia cell bằng `# %%`:
@@ -238,6 +246,27 @@ phía trên và phía dưới.
 3. Khi cần chia sẻ với người dùng Jupyter, chạy `<Space>js`.
 4. Khi cần mở lại trong JupyterLab hoặc Notebook, dùng file `.ipynb` đã sync.
 
+### Workflow với Kaggle
+
+Workflow này phù hợp khi bạn muốn soạn notebook trong Neovim nhưng chạy job trên
+Kaggle thay vì attach trực tiếp vào remote Jupyter server.
+
+1. Mở notebook hoặc script Python trong thư mục riêng cho Kaggle kernel.
+2. Chạy `<Space>ki` hoặc `:KaggleKernelInit` để tạo `kernel-metadata.json` nếu
+   thư mục chưa có file này.
+3. Sửa `kernel-metadata.json` theo notebook của bạn, đặc biệt là trường `id`
+   dạng `owner/slug`.
+4. Chạy `<Space>kp` hoặc `:KaggleKernelPush` để upload và trigger run trên
+   Kaggle.
+5. Xem trạng thái bằng `<Space>ks` hoặc `:KaggleKernelStatus`.
+6. Liệt kê output file bằng `<Space>kf` hoặc `:KaggleKernelFiles`.
+7. Tải output mới nhất về thư mục `kaggle-output/` cạnh notebook bằng
+   `<Space>ko` hoặc `:KaggleKernelOutput`.
+
+`KaggleKernelPull` có thể dùng để kéo notebook và metadata từ Kaggle về thư mục
+hiện tại. Nếu trong `kernel-metadata.json` đã có `id`, các lệnh status, files,
+output và pull sẽ tự dùng giá trị đó. Nếu chưa có, Neovim sẽ hỏi `owner/slug`.
+
 ### Điều khiển khi chạy cell
 
 - `<Space>jl` chạy dòng hiện tại.
@@ -271,6 +300,12 @@ phía trên và phía dưới.
 | `<Space>jp` | Pair file hiện tại với `.ipynb` bằng Jupytext |
 | `<Space>js` | Sync file pair bằng Jupytext |
 | `<Space>jb` | Export file hiện tại sang `.ipynb` |
+| `<Space>ki` | Tạo `kernel-metadata.json` cho Kaggle trong thư mục hiện tại |
+| `<Space>kp` | Push notebook/script hiện tại lên Kaggle và chạy |
+| `<Space>kl` | Pull notebook và metadata từ Kaggle về thư mục hiện tại |
+| `<Space>ks` | Xem trạng thái run mới nhất trên Kaggle |
+| `<Space>kf` | Liệt kê output file của run mới nhất trên Kaggle |
+| `<Space>ko` | Tải output của run mới nhất về `kaggle-output/` |
 | `]j` | Nhảy tới cell marker `# %%` tiếp theo |
 | `[j` | Nhảy tới cell marker `# %%` trước đó |
 

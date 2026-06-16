@@ -14,6 +14,7 @@ if has_which_key then
     },
     spec = {
       { "<leader>j", group = "[J]upyter", icon = { icon = "󰠮", color = "yellow" } },
+      { "<leader>k", group = "[K]aggle", icon = { icon = "", color = "blue" } },
       { "<leader>s", group = "[S]earch", icon = { icon = "", color = "green" } },
     },
   })
