@@ -1,475 +1,252 @@
 # Neovim Configuration
 
-Cấu hình Neovim gọn nhẹ, viết bằng Lua và chia thành các module độc lập.
-Plugin được cài trực tiếp bằng `vim.pack`, không cần plugin manager bên thứ ba.
+Một cấu hình Neovim viết bằng Lua, chia nhỏ theo module và cài plugin trực tiếp
+bằng `vim.pack`.
 
-## Tính năng chính
+Repo này hiện tập trung vào 4 nhóm chức năng:
 
-- Giao diện Catppuccin Mocha với nền trong suốt.
-- Gợi ý code, tài liệu và signature help bằng `blink.cmp`.
-- LSP cho Lua, C/C++, Rust, Go và Markdown.
-- Tự động cài LSP server bằng Mason.
-- Highlight cú pháp bằng Treesitter.
-- Render Markdown, ảnh, công thức LaTeX và sơ đồ Mermaid ngay trong Kitty.
-- Chạy Python theo kiểu Jupyter notebook ngay trong `.py` bằng `molten-nvim`.
-- Tìm file, buffer, nội dung và tài liệu bằng Telescope.
-- Tự đóng ngoặc và dấu nháy bằng `nvim-autopairs`.
-- Hiển thị nhóm phím tắt bằng `which-key.nvim`.
-- Fold theo indentation và mở sẵn khi vào file.
-- Lưu undo history và đồng bộ clipboard với hệ điều hành.
+- chỉnh giao diện và hành vi editor cơ bản,
+- LSP + completion,
+- tìm kiếm bằng Telescope,
+- workflow Python notebook với Molten, Jupytext và Kaggle CLI.
+
+## Trạng thái hiện tại
+
+Những gì đang được cấu hình trong code:
+
+- Theme `catppuccin` với flavour `mocha`.
+- Toggle nền trong suốt bằng `<leader>tt`.
+- Completion bằng `blink.cmp`.
+- LSP qua `nvim-lspconfig` + `mason.nvim`.
+- Treesitter cho một nhóm ngôn ngữ cố định.
+- Telescope để tìm file, buffer, grep, help, man page.
+- Render Markdown cơ bản bằng `render-markdown.nvim`.
+- Chạy cell Python kiểu notebook bằng `molten-nvim`.
+- Hiển thị ảnh output notebook qua `image.nvim` với backend `kitty`.
+- Nhóm phím tắt bằng `which-key.nvim`.
+
+Những gì README cũ có nói nhưng code hiện tại không cấu hình rõ ràng, nên không
+còn được hứa hẹn ở đây:
+
+- không có phần cấu hình Mermaid riêng,
+- không có phần cài parser hay dependency Markdown tự động,
+- không có workflow quản lý notebook ngoài các lệnh Jupytext/Kaggle đã viết,
+- không có plugin manager bên thứ ba như `lazy.nvim` hay `packer.nvim`.
 
 ## Yêu cầu
 
-### Chung
+Tối thiểu:
 
-- Neovim có hỗ trợ `vim.pack` và `vim.lsp.config`.
-- `git` để tải plugin.
-- `ripgrep` để Telescope tìm kiếm nội dung bằng live grep.
-- Một công cụ clipboard như `xclip`, `xsel` hoặc `win32yank`.
-- Nerd Font để hiển thị icon.
-- Python 3 với `venv` để tạo Python host riêng cho Neovim.
+- Neovim đủ mới để có `vim.pack`, `vim.system`, `vim.lsp.config`.
+- `git`.
+- Nerd Font nếu muốn icon hiển thị đẹp.
+- công cụ clipboard hệ thống cho `unnamedplus`.
 
-### Notebook Python
+Phụ trợ theo tính năng:
 
-- Jupyter kernel `python3`.
-- Gói Python `pynvim`, `jupyter_client`, `nbformat` và `jupytext`.
-- CLI `kaggle` nếu muốn push/pull notebook lên Kaggle.
-- `kitty` và ImageMagick nếu muốn render plot/ảnh inline từ Molten.
-- Gói Python `cairosvg` và `pillow` trong Python host của Neovim để hỗ trợ ảnh tốt hơn.
+- `ripgrep` cho `Telescope live_grep`.
+- Python 3 nếu muốn dùng Python host riêng của Neovim.
+- `kitty` và ImageMagick nếu muốn hiển thị ảnh từ notebook output.
+- `jupytext` nếu muốn pair/sync `.py` với `.ipynb`.
+- `kaggle` CLI nếu muốn dùng các lệnh Kaggle kernel.
 
-Trong repo này, Neovim sẽ tự dùng Python host tại `.venv-nvim/bin/python` nếu thư
-mục đó tồn tại.
-
-### Markdown
-
-- Kitty để hiển thị ảnh inline trong terminal.
-- ImageMagick để chuyển đổi định dạng ảnh.
-- Mermaid CLI (`mmdc`) để generate sơ đồ Mermaid.
-- Google Chrome hoặc Chromium để Mermaid CLI generate hình ảnh.
-- Tectonic hoặc `pdflatex` để render công thức LaTeX.
-- Tree-sitter CLI để cài parser `latex`.
-
-Trên Arch Linux, có thể cài các dependency Markdown bằng:
-
-```sh
-sudo pacman -S --needed kitty imagemagick tectonic tree-sitter-cli chromium nodejs npm
-sudo npm install -g @mermaid-js/mermaid-cli
-```
-
-Nếu đã cài Google Chrome thì không cần cài thêm Chromium. Module Markdown tự
-động tìm `google-chrome-stable`, `google-chrome`, `chromium` hoặc
-`chromium-browser`.
-
-Cấu hình hiện tại đã được kiểm tra với Neovim `0.12.2`, Kitty `0.47.1`,
-Tectonic `0.16.9`, Tree-sitter CLI `0.26.9` và Mermaid CLI `11.15.0`.
+Nếu tồn tại file `~/.config/nvim/.venv-nvim/bin/python`, Neovim sẽ tự dùng nó
+làm `python3_host_prog`.
 
 ## Cài đặt
-
-Sao lưu cấu hình cũ nếu cần, sau đó clone repository vào thư mục cấu hình
-Neovim:
 
 ```sh
 git clone <repository-url> ~/.config/nvim
 nvim
 ```
 
-Trong lần khởi động đầu tiên, `vim.pack` tải và nạp plugin. Mason tiếp tục cài
-các LSP server đã khai báo, bao gồm `marksman` cho Markdown.
+Khi khởi động, các module trong `init.lua` sẽ lần lượt gọi `vim.pack.add(...)`
+để tải plugin cần thiết.
 
-Để cài các Treesitter parser được cấu hình sẵn, chạy lệnh sau bên trong
-Neovim:
+Nếu bạn muốn Neovim tự update plugin khi mở lên, bỏ comment dòng này trong
+`init.lua`:
 
-```vim
-:TSInstallConfigured
+```lua
+-- vim.pack.update()
 ```
 
-## Cấu trúc thư mục
+## Cấu trúc
 
 ```text
 .
 ├── init.lua
+├── README.md
 ├── nvim-pack-lock.json
-└── lua/config/
+└── lua/config
     ├── diagnostics.lua
     ├── globals.lua
     ├── keymaps.lua
     ├── options.lua
     ├── pack.lua
-    └── plugins/
+    └── plugins
         ├── autopairs.lua
         ├── colorscheme.lua
         ├── completion.lua
         ├── lsp.lua
         ├── markdown.lua
+        ├── notebook.lua
         ├── telescope.lua
         ├── treesitter.lua
         └── which-key.lua
 ```
 
-`init.lua` chỉ nạp các module. Cấu hình editor cơ bản nằm trong `lua/config/`,
-còn phần cài đặt và thiết lập plugin nằm trong `lua/config/plugins/`.
+`init.lua` chỉ nạp module. Cấu hình editor cơ bản nằm trong `lua/config/`, còn
+plugin nằm trong `lua/config/plugins/`.
 
-## Plugin
+## Plugin đang dùng
 
 | Plugin | Vai trò |
 | --- | --- |
-| [catppuccin/nvim](https://github.com/catppuccin/nvim) | Colorscheme Catppuccin Mocha |
-| [saghen/blink.cmp](https://github.com/saghen/blink.cmp) | Completion, documentation và signature help |
-| [windwp/nvim-autopairs](https://github.com/windwp/nvim-autopairs) | Tự đóng ngoặc và dấu nháy |
-| [neovim/nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) | Cấu hình LSP server |
-| [mason-org/mason.nvim](https://github.com/mason-org/mason.nvim) | Quản lý công cụ phát triển |
-| [mason-org/mason-lspconfig.nvim](https://github.com/mason-org/mason-lspconfig.nvim) | Kết nối Mason với LSP |
-| [WhoIsSethDaniel/mason-tool-installer.nvim](https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim) | Tự động cài LSP server |
-| [nvim-treesitter/nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) | Parsing và highlight cú pháp |
-| [benlubas/molten-nvim](https://github.com/benlubas/molten-nvim) | Chạy code qua Jupyter kernel ngay trong buffer |
-| [folke/snacks.nvim](https://github.com/folke/snacks.nvim) | Hiển thị ảnh, LaTeX và Mermaid inline trong Kitty |
-| [MeanderingProgrammer/render-markdown.nvim](https://github.com/MeanderingProgrammer/render-markdown.nvim) | Render thành phần Markdown trong buffer |
-| [nvim-telescope/telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) | Tìm kiếm tương tác |
-| [nvim-tree/nvim-web-devicons](https://github.com/nvim-tree/nvim-web-devicons) | Icon cho giao diện plugin |
-| [folke/which-key.nvim](https://github.com/folke/which-key.nvim) | Gợi ý nhóm phím tắt |
+| `catppuccin/nvim` | Colorscheme |
+| `saghen/blink.lib` | Dependency cho `blink.cmp` |
+| `saghen/blink.cmp` | Completion |
+| `windwp/nvim-autopairs` | Tự đóng ngoặc và dấu nháy |
+| `neovim/nvim-lspconfig` | Khai báo và bật LSP |
+| `mason-org/mason.nvim` | Quản lý tool/LSP server |
+| `mason-org/mason-lspconfig.nvim` | Cầu nối Mason và LSP |
+| `WhoIsSethDaniel/mason-tool-installer.nvim` | Tự cài các server đã khai báo |
+| `nvim-treesitter/nvim-treesitter` | Treesitter parser/runtime |
+| `nvim-lua/plenary.nvim` | Dependency cho Telescope |
+| `nvim-tree/nvim-web-devicons` | Icon |
+| `nvim-telescope/telescope.nvim` | Tìm kiếm |
+| `folke/snacks.nvim` | Hỗ trợ hiển thị ảnh |
+| `MeanderingProgrammer/render-markdown.nvim` | Render Markdown trong buffer |
+| `3rd/image.nvim` | Hiển thị ảnh cho notebook output |
+| `benlubas/molten-nvim` | Chạy code notebook trong buffer Python |
+| `folke/which-key.nvim` | Gợi ý nhóm phím |
 
-`plenary.nvim` và `blink.lib` được cài làm dependency cho Telescope và
-`blink.cmp`.
+## Thiết lập editor
 
-## Ngôn ngữ hỗ trợ
+Các option nổi bật hiện có:
 
-### LSP
+- bật `termguicolors`,
+- `number` + `relativenumber`,
+- đồng bộ clipboard với hệ điều hành,
+- lưu `undofile`,
+- `signcolumn = "yes"`,
+- hiển thị ký tự trắng,
+- `cursorline`,
+- `wrap` + `breakindent`,
+- indent 2 spaces,
+- `textwidth = 80`,
+- fold theo indent và mở sẵn với `foldlevel = 99`.
 
-| Ngôn ngữ | LSP server |
-| --- | --- |
-| Lua | `lua_ls` |
-| Python | `pyright` |
-| C/C++ | `clangd` |
-| Rust | `rust_analyzer` |
-| Go | `gopls` |
-| Markdown | `marksman` |
+Phím chung hiện có:
 
-Các server này được Mason cài tự động khi khởi động Neovim.
+- `<Esc>`: bỏ highlight của search.
+- `<leader>tt`: bật/tắt nền trong suốt của `catppuccin`.
 
-### Treesitter
+## LSP
 
-Lệnh `:TSInstallConfigured` cài parser cho:
+Các server đang được khai báo:
+
+- `lua_ls`
+- `pyright`
+- `clangd`
+- `rust_analyzer`
+- `gopls`
+- `marksman`
+
+Mason được cấu hình để đảm bảo các server trên được cài.
+
+Keymap khi LSP attach:
+
+- `grd`: nhảy tới definition
+- `grf`: format buffer
+
+## Treesitter
+
+Lệnh `:TSInstallConfigured` sẽ cài parser cho:
 
 ```text
 lua, vim, vimdoc, c, cpp, python, javascript, typescript,
 html, css, json, markdown, markdown_inline, yaml, latex
 ```
 
-## Notebook Python
-
-Workflow được cấu hình theo hướng `Jupytext + Molten`:
-
-- Soạn notebook trong file `.py`.
-- Chia cell bằng marker `# %%`.
-- Chạy cell qua Jupyter kernel ngay trong Neovim.
-- Đồng bộ qua lại với `.ipynb` bằng `jupytext`.
-- Giữ source ở dạng text để dễ đọc diff và commit bằng Git.
-
-Ví dụ:
-
-```python
-# %%
-import math
-
-math.sqrt(144)
-
-# %%
-for i in range(3):
-  print(i)
-```
-
-### Cài dependency Python
-
-Tạo Python host riêng cho Neovim:
-
-```sh
-python3 -m venv ~/.config/nvim/.venv-nvim
-~/.config/nvim/.venv-nvim/bin/python -m pip install pynvim jupyter_client nbformat jupytext cairosvg pillow requests websocket-client
-```
-
-Nếu muốn làm việc với Kaggle từ terminal:
-
-```sh
-pip install kaggle
-kaggle auth login
-```
-
-### Chuẩn bị file notebook
-
-Tạo file `.py` và chia cell bằng `# %%`:
-
-```python
-# %%
-import pandas as pd
-
-df = pd.DataFrame({"x": [1, 2, 3]})
-df
-
-# %%
-df["x"].mean()
-```
-
-Nếu muốn làm việc song song với Jupyter Notebook, mở file đó trong Neovim rồi
-chạy:
-
-```vim
-:JupytextPair
-```
-
-Lệnh này pair file hiện tại với notebook `.ipynb` tương ứng theo format
-`ipynb,py:percent`.
-
-### Chạy notebook trong Neovim
-
-1. Mở file Python notebook, ví dụ `analysis.py`.
-2. Khởi tạo kernel bằng `<Space>ji` hoặc `:MoltenInit`.
-3. Đưa con trỏ vào cell muốn chạy.
-4. Chạy cell hiện tại bằng `<Space>jc`.
-5. Nếu cần xem output trong cửa sổ riêng, dùng `<Space>jo`.
-6. Nếu muốn di chuyển vào cửa sổ output, dùng `<Space>je`.
-
-Cell hiện tại được xác định từ vị trí con trỏ đến các marker `# %%` gần nhất ở
-phía trên và phía dưới.
-
-### Attach vào Jupyter Server
-
-Nếu bạn đã có một Jupyter Server thật đang chạy, Molten có thể attach qua URL
-server đó thay vì tự spawn kernel local.
-
-1. Khởi động hoặc tunnel Jupyter Server sao cho Neovim nhìn thấy nó qua URL kiểu
-   `http://127.0.0.1:8888/?token=...`.
-2. Lưu URL cho session hiện tại bằng `<Space>jU` hoặc `:JupyterServerSet`.
-3. Attach Molten vào server đó bằng `<Space>ju` hoặc `:JupyterServerConnect`.
-4. Sau khi attach xong, chạy cell như bình thường bằng `<Space>jc`,
-   `<Space>jl`, `<Space>jv`...
-
-Bạn cũng có thể gọi trực tiếp:
-
-```vim
-:JupyterServerConnect http://127.0.0.1:8888/?token=YOUR_TOKEN
-```
-
-Nếu không truyền URL vào lệnh, Neovim sẽ dùng `g:jupyter_server_url`,
-`$JUPYTER_SERVER_URL`, rồi tới `$MOLTEN_JUPYTER_SERVER_URL`.
-
-Lưu ý:
-
-- Với phiên bản `molten.nvim` hiện tại trong máy, hướng này thực tế nhất khi
-  dùng `http://127.0.0.1:PORT/?token=...`, ví dụ qua SSH tunnel.
-- Phần token nên nằm ngay trong query string của URL vì Molten đang tự đọc
-  `?token=...` từ đó.
-
-### Đồng bộ với `.ipynb`
-
-- Pair lần đầu: `<Space>jp` hoặc `:JupytextPair`
-- Đồng bộ lại giữa `.py` và `.ipynb`: `<Space>js` hoặc `:JupytextSync`
-- Export file `.py` hiện tại sang `.ipynb`: `<Space>jb` hoặc `:JupytextToIpynb`
-
-`JupytextSync` sẽ lấy nội dung từ file mới hơn giữa cặp `.py` và `.ipynb`.
-
-### Workflow gợi ý
-
-1. Viết notebook chính trong `analysis.py`.
-2. Chạy cell trực tiếp trong Neovim bằng Molten.
-3. Khi cần chia sẻ với người dùng Jupyter, chạy `<Space>js`.
-4. Khi cần mở lại trong JupyterLab hoặc Notebook, dùng file `.ipynb` đã sync.
-
-### Workflow với Kaggle
-
-Workflow này phù hợp khi bạn muốn soạn notebook trong Neovim nhưng chạy job trên
-Kaggle thay vì attach trực tiếp vào remote Jupyter server.
-
-1. Mở notebook hoặc script Python trong thư mục riêng cho Kaggle kernel.
-2. Chạy `<Space>ki` hoặc `:KaggleKernelInit` để tạo `kernel-metadata.json` nếu
-   thư mục chưa có file này.
-3. Sửa `kernel-metadata.json` theo notebook của bạn, đặc biệt là trường `id`
-   dạng `owner/slug`.
-4. Chạy `<Space>kp` hoặc `:KaggleKernelPush` để upload và trigger run trên
-   Kaggle.
-5. Xem trạng thái bằng `<Space>ks` hoặc `:KaggleKernelStatus`.
-6. Liệt kê output file bằng `<Space>kf` hoặc `:KaggleKernelFiles`.
-7. Tải output mới nhất về thư mục `kaggle-output/` cạnh notebook bằng
-   `<Space>ko` hoặc `:KaggleKernelOutput`.
-
-`KaggleKernelPull` có thể dùng để kéo notebook và metadata từ Kaggle về thư mục
-hiện tại. Nếu trong `kernel-metadata.json` đã có `id`, các lệnh status, files,
-output và pull sẽ tự dùng giá trị đó. Nếu chưa có, Neovim sẽ hỏi `owner/slug`.
-
-### Điều khiển khi chạy cell
-
-- `<Space>jl` chạy dòng hiện tại.
-- `<Space>jr` chạy lại cell Molten đang active.
-- `<Space>jx` gửi interrupt tới kernel đang chạy.
-- `<Space>jd` xóa cell Molten đang active khỏi buffer state.
-- `<Space>jv` chạy vùng chọn visual.
-- `]j` và `[j` di chuyển giữa các marker `# %%`.
-
-### Lưu ý
-
-- Output không tự bật khi chạy cell. Dùng `<Space>jo` để mở output khi cần.
-- Plot và image output từ Jupyter được render inline qua `image.nvim` với backend `kitty`.
-- Nếu plot không hiện, kiểm tra lại terminal phải là Kitty và `magick` phải có trong `PATH`.
-- `Jupytext` được ưu tiên gọi từ `.venv-nvim/bin/jupytext` nếu file đó tồn tại.
-- Các phím dưới đây chỉ áp dụng cho buffer `python`.
-
-### Phím tắt
-
-| Phím | Chức năng |
-| --- | --- |
-| `<Space>ji` | Khởi tạo Jupyter kernel |
-| `<Space>ju` | Attach Molten vào Jupyter Server URL đã lưu hoặc vừa nhập |
-| `<Space>jU` | Lưu hoặc cập nhật Jupyter Server URL cho session hiện tại |
-| `<Space>jc` | Chạy cell hiện tại, nhận diện bằng marker `# %%` |
-| `<Space>jl` | Chạy dòng hiện tại |
-| `<Space>jr` | Chạy lại cell Molten đang active |
-| `<Space>jo` | Mở cửa sổ output |
-| `<Space>je` | Đi vào cửa sổ output |
-| `<Space>jx` | Interrupt kernel |
-| `<Space>jd` | Xóa cell Molten đang active |
-| `<Space>jv` | Chạy vùng chọn visual |
-| `<Space>jp` | Pair file hiện tại với `.ipynb` bằng Jupytext |
-| `<Space>js` | Sync file pair bằng Jupytext |
-| `<Space>jb` | Export file hiện tại sang `.ipynb` |
-| `<Space>ki` | Tạo `kernel-metadata.json` cho Kaggle trong thư mục hiện tại |
-| `<Space>kp` | Push notebook/script hiện tại lên Kaggle và chạy |
-| `<Space>kl` | Pull notebook và metadata từ Kaggle về thư mục hiện tại |
-| `<Space>ks` | Xem trạng thái run mới nhất trên Kaggle |
-| `<Space>kf` | Liệt kê output file của run mới nhất trên Kaggle |
-| `<Space>ko` | Tải output của run mới nhất về `kaggle-output/` |
-| `]j` | Nhảy tới cell marker `# %%` tiếp theo |
-| `[j` | Nhảy tới cell marker `# %%` trước đó |
-
-## Markdown
-
-`render-markdown.nvim` cải thiện cách hiển thị heading, bảng, checkbox, quote,
-code block và link. `snacks.nvim` sử dụng Kitty Graphics Protocol để hiển thị
-ảnh, công thức LaTeX và sơ đồ Mermaid ngay trong buffer.
-
-Handler chuyển LaTeX sang ký tự Unicode của `render-markdown.nvim` được tắt để
-tránh render trùng lặp. Công thức LaTeX được `snacks.nvim` biên dịch thành ảnh
-bằng Tectonic.
-
-````markdown
-![Ảnh local](./images/example.png)
-
-```mermaid
-flowchart LR
-  A --> B
-```
-
-```math
-E = mc^2
-```
-````
-
-Lần render LaTeX đầu tiên có thể chậm hơn bình thường vì Tectonic cần tải
-bundle TeX vào cache.
-
-### Kitty và tmux
-
-Khi chạy Neovim trực tiếp trong Kitty, ảnh inline hoạt động qua Kitty Graphics
-Protocol. Nếu dùng tmux, có thể cần thêm cấu hình sau:
-
-```tmux
-set -gq allow-passthrough on
-```
-
-### Kiểm tra
-
-Nếu ảnh, LaTeX hoặc Mermaid không hiển thị, chạy:
-
-```vim
-:checkhealth snacks
-:checkhealth render-markdown
-```
-
-Mermaid CLI cần Chrome hoặc Chromium. Nếu trình duyệt không được tự động tìm
-thấy, đặt biến môi trường trước khi mở Neovim:
-
-```sh
-export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-```
-
-## Phím tắt
-
-Phím leader là `<Space>`.
-
-### Chung
-
-| Phím | Chế độ | Chức năng |
-| --- | --- | --- |
-| `<Esc>` | Normal | Xóa highlight của kết quả tìm kiếm |
-| `<Space>tt` | Normal | Bật hoặc tắt nền trong suốt |
-
-### Fold
-
-Sử dụng phím mặc định của Neovim cho fold. `which-key` không chặn prefix `z`.
-
-| Phím | Chức năng |
-| --- | --- |
-| `za` | Đóng hoặc mở fold tại vị trí hiện tại |
-| `zA` | Đóng hoặc mở fold hiện tại và các fold lồng nhau |
-| `zM` | Đóng tất cả fold |
-| `zR` | Mở tất cả fold |
-
-### Telescope
-
-| Phím | Chức năng |
-| --- | --- |
-| `<Space>sp` | Mở danh sách picker |
-| `<Space>sb` | Tìm buffer |
-| `<Space>sf` | Tìm file |
-| `<Space>sw` | Tìm từ đang đặt con trỏ |
-| `<Space>sg` | Tìm nội dung bằng live grep |
-| `<Space>sr` | Tiếp tục lần tìm kiếm gần nhất |
-| `<Space>sh` | Tìm tài liệu trợ giúp |
-| `<Space>sm` | Tìm man page |
-
-### LSP
-
-Các phím sau khả dụng khi LSP đã attach vào buffer:
-
-| Phím | Chức năng |
-| --- | --- |
-| `grd` | Đi tới definition |
-| `grf` | Format buffer |
-
-### Completion
-
-| Phím | Chức năng |
-| --- | --- |
-| `<C-p>` | Chọn gợi ý trước |
-| `<C-n>` | Chọn gợi ý tiếp theo |
-| `<C-y>` | Chấp nhận gợi ý |
-| `<C-e>` | Đóng danh sách gợi ý |
-| `<C-Space>` | Hiển thị completion hoặc documentation |
-| `<Tab>` | Đi tới vị trí snippet tiếp theo |
-| `<S-Tab>` | Quay lại vị trí snippet trước |
-| `<C-b>` | Cuộn documentation lên |
-| `<C-f>` | Cuộn documentation xuống |
-| `<C-k>` | Hiển thị hoặc ẩn signature help |
-
-## Thiết lập editor
-
-- Hiển thị line number tuyệt đối và tương đối.
-- Sử dụng indentation 2 spaces và chuyển tab thành spaces.
-- Fold được tính theo indentation với `foldmethod=indent` và mở sẵn nhờ `foldlevel=99`.
-- Hiển thị ký tự whitespace.
-- Luôn hiển thị sign column cho diagnostic.
-- Hiển thị diagnostic bằng icon và virtual text.
-- Preview lệnh substitute trong split riêng.
-- Bật mouse, cursor line, line wrapping và persistent undo.
-- Dùng clipboard hệ điều hành qua `unnamedplus`.
-
-## Quản lý plugin
-
-Helper `lua/config/pack.lua` gọi `vim.pack.add()` với `confirm = false` và
-`load = true`. Plugin mới được khai báo trong module tương ứng rồi nạp từ
-`init.lua`.
-
-Phiên bản plugin được lưu trong `nvim-pack-lock.json`. Để bật cập nhật plugin
-tự động khi khởi động, bỏ comment dòng sau ở cuối `init.lua`:
-
-```lua
-vim.pack.update()
-```
+Khi mở file thuộc các filetype trên, config sẽ gọi `vim.treesitter.start()`.
+
+## Telescope
+
+Các phím tìm kiếm đang có:
+
+- `<leader>sp`: danh sách builtin picker
+- `<leader>sb`: buffer
+- `<leader>sf`: file
+- `<leader>sw`: grep từ dưới con trỏ
+- `<leader>sg`: live grep
+- `<leader>sr`: resume picker trước
+- `<leader>sh`: help tags
+- `<leader>sm`: man pages
+
+## Python Notebook
+
+Workflow hiện tại dùng file `.py` với marker `# %%`.
+
+Các capability chính:
+
+- chạy cell hiện tại bằng Molten,
+- pair/sync với `.ipynb` bằng Jupytext,
+- attach vào Jupyter Server có sẵn qua URL,
+- gọi Kaggle CLI ngay từ Neovim để init/push/pull/status/output.
+
+### Lệnh notebook
+
+- `:JupytextPair`
+- `:JupytextSync`
+- `:JupytextToIpynb`
+- `:JupyterRunCell`
+- `:JupyterServerSet [url]`
+- `:JupyterServerConnect [url]`
+
+### Lệnh Kaggle
+
+- `:KaggleKernelInit`
+- `:KaggleKernelPush`
+- `:KaggleKernelPull [owner/slug]`
+- `:KaggleKernelStatus [owner/slug]`
+- `:KaggleKernelFiles [owner/slug]`
+- `:KaggleKernelOutput [owner/slug]`
+
+Config sẽ ưu tiên đọc `kernel-metadata.json` để suy ra `owner/slug`. Nếu không
+có, nó sẽ hỏi thủ công.
+
+Output tải từ Kaggle được đặt trong thư mục `kaggle-output/` cạnh notebook, trừ
+khi bạn tự override `vim.g.kaggle_output_dirname`.
+
+### Keymap trong file Python
+
+- `<leader>ji`: khởi tạo Molten kernel local
+- `<leader>ju`: attach qua Jupyter Server URL
+- `<leader>jU`: lưu Jupyter Server URL cho session hiện tại
+- `<leader>jc`: chạy cell hiện tại
+- `<leader>jl`: chạy dòng hiện tại
+- `<leader>jr`: chạy lại cell Molten đang active
+- `<leader>jo`: mở output
+- `<leader>je`: vào cửa sổ output
+- `<leader>jx`: interrupt execution
+- `<leader>jd`: xóa cell output đang active
+- `<leader>jv`: chạy vùng chọn visual
+- `<leader>jp`: pair Jupytext
+- `<leader>js`: sync Jupytext
+- `<leader>jb`: export sang `.ipynb`
+- `<leader>ki`: `KaggleKernelInit`
+- `<leader>kp`: `KaggleKernelPush`
+- `<leader>kl`: `KaggleKernelPull`
+- `<leader>ks`: `KaggleKernelStatus`
+- `<leader>kf`: `KaggleKernelFiles`
+- `<leader>ko`: `KaggleKernelOutput`
+- `]j`: nhảy tới marker `# %%` tiếp theo
+- `[j`: nhảy tới marker `# %%` trước đó
+
+## Ghi chú
+
+- `nvim-pack-lock.json` là lockfile plugin snapshot, nhưng có thể chứa mục cũ
+  nếu bạn vừa đổi plugin mà chưa refresh lock.
+- Repo này hiện không có bước bootstrap dependency tự động; các binary như
+  `jupytext`, `kaggle`, `magick` hay browser cho terminal image rendering cần có
+  sẵn trong máy nếu bạn dùng các tính năng đó.
