@@ -379,6 +379,98 @@ local function evaluate_current_cell()
   vim.api.nvim_feedkeys(keys, "n", false)
 end
 
+local function normalize_jupyter_server_url(url)
+  if type(url) ~= "string" then
+    return nil
+  end
+
+  local trimmed = vim.trim(url)
+  if trimmed == "" then
+    return nil
+  end
+
+  return trimmed
+end
+
+local function saved_jupyter_server_url()
+  local candidates = {
+    vim.g.jupyter_server_url,
+    vim.env.JUPYTER_SERVER_URL,
+    vim.env.MOLTEN_JUPYTER_SERVER_URL,
+  }
+
+  for _, candidate in ipairs(candidates) do
+    local normalized = normalize_jupyter_server_url(candidate)
+    if normalized then
+      return normalized
+    end
+  end
+
+  return nil
+end
+
+local function set_jupyter_server_url(url)
+  local normalized = normalize_jupyter_server_url(url)
+  if not normalized then
+    vim.notify("Thiếu Jupyter server URL.", vim.log.levels.WARN, { title = "Jupyter Server" })
+    return nil
+  end
+
+  vim.g.jupyter_server_url = normalized
+  vim.notify(("Đã lưu Jupyter server URL: %s"):format(normalized), vim.log.levels.INFO, {
+    title = "Jupyter Server",
+  })
+  return normalized
+end
+
+local function prompt_jupyter_server_url(default_url, callback)
+  vim.schedule(function()
+    vim.ui.input({
+      prompt = "Jupyter server URL: ",
+      default = default_url or "",
+    }, function(input)
+      local normalized = normalize_jupyter_server_url(input)
+      if not normalized then
+        vim.notify("Thiếu Jupyter server URL.", vim.log.levels.WARN, { title = "Jupyter Server" })
+        return
+      end
+
+      callback(normalized)
+    end)
+  end)
+end
+
+local function resolve_jupyter_server_url(arg, callback)
+  local normalized = normalize_jupyter_server_url(arg)
+  if normalized then
+    callback(normalized)
+    return
+  end
+
+  local saved = saved_jupyter_server_url()
+  if saved then
+    callback(saved)
+    return
+  end
+
+  prompt_jupyter_server_url(nil, callback)
+end
+
+local function molten_init_jupyter_server(arg, opts)
+  opts = opts or {}
+
+  resolve_jupyter_server_url(arg, function(url)
+    if opts.persist ~= false then
+      set_jupyter_server_url(url)
+    end
+
+    vim.cmd({
+      cmd = "MoltenInit",
+      args = { url },
+    })
+  end)
+end
+
 vim.api.nvim_create_user_command("JupytextPair", function()
   run_jupytext({ "--set-formats", "ipynb,py:percent" }, "Jupytext Pair")
 end, { desc = "Pair the current notebook with ipynb and py:percent" })
@@ -393,6 +485,28 @@ end, { desc = "Export the current text notebook to ipynb" })
 
 vim.api.nvim_create_user_command("JupyterRunCell", evaluate_current_cell, {
   desc = "Run the current # %% cell with Molten",
+})
+
+vim.api.nvim_create_user_command("JupyterServerSet", function(opts)
+  if opts.args ~= "" then
+    set_jupyter_server_url(opts.args)
+    return
+  end
+
+  prompt_jupyter_server_url(saved_jupyter_server_url(), function(url)
+    set_jupyter_server_url(url)
+  end)
+end, {
+  desc = "Save the Jupyter server URL for this Neovim session",
+  nargs = "?",
+})
+
+vim.api.nvim_create_user_command("JupyterServerConnect", function(opts)
+  molten_init_jupyter_server(opts.args)
+end, {
+  desc = "Connect Molten to a Jupyter Server URL",
+  nargs = "?",
+  complete = "file",
 })
 
 vim.api.nvim_create_user_command("KaggleKernelInit", kaggle_kernel_init, {
@@ -438,6 +552,12 @@ vim.api.nvim_create_autocmd("FileType", {
 
     vim.keymap.set("n", "<leader>ji", "<cmd>MoltenInit<CR>", vim.tbl_extend("force", opts, {
       desc = "[J]upyter [I]nit kernel",
+    }))
+    vim.keymap.set("n", "<leader>ju", "<cmd>JupyterServerConnect<CR>", vim.tbl_extend("force", opts, {
+      desc = "[J]upyter attach via server [U]RL",
+    }))
+    vim.keymap.set("n", "<leader>jU", "<cmd>JupyterServerSet<CR>", vim.tbl_extend("force", opts, {
+      desc = "[J]upyter set server [U]RL",
     }))
     vim.keymap.set("n", "<leader>jc", evaluate_current_cell, vim.tbl_extend("force", opts, {
       desc = "[J]upyter run current [C]ell",
