@@ -3,19 +3,27 @@
 Một cấu hình Neovim viết bằng Lua, chia nhỏ theo module và cài plugin trực tiếp
 bằng `vim.pack`.
 
-Repo này hiện tập trung vào 4 nhóm chức năng:
+Repo này hiện tập trung vào 5 nhóm chức năng:
 
 - chỉnh giao diện và hành vi editor cơ bản,
 - LSP + completion,
 - tìm kiếm bằng Telescope,
+- template competitive programming cho C++,
 - workflow Python notebook với Molten, Jupytext và Kaggle CLI.
 
 ## Trạng thái hiện tại
 
 Những gì đang được cấu hình trong code:
 
-- Theme `catppuccin` với flavour `mocha`.
-- Toggle nền trong suốt bằng `<leader>tt`.
+- Theme `catppuccin` tự chọn light/dark theo terminal, ưu tiên Kitty nếu đang
+  chạy trong Kitty và đọc được `~/.config/kitty/kitty.conf`.
+- Palette Neovim có thể bám theo màu foreground/background của Kitty.
+- Nền trong suốt mặc định đang tắt; toggle bằng `<leader>tt`.
+- Sync lại light/dark mode và palette theo terminal bằng `<leader>ts` hoặc
+  `:ThemeSyncTerminal`.
+- Ép `latte` bằng `<leader>tl` hoặc `:ThemeLight`.
+- Ép `mocha` bằng `<leader>td` hoặc `:ThemeDark`.
+- Lệnh `:CP` để chèn template C++ competitive programming vào buffer hiện tại.
 - Completion bằng `blink.cmp`.
 - LSP qua `nvim-lspconfig` + `mason.nvim`.
 - Treesitter cho một nhóm ngôn ngữ cố định.
@@ -46,6 +54,7 @@ Phụ trợ theo tính năng:
 
 - `ripgrep` cho `Telescope live_grep`.
 - Python 3 nếu muốn dùng Python host riêng của Neovim.
+- `kitty` nếu muốn theme/palette Neovim tự bám theo Kitty.
 - `kitty` và ImageMagick nếu muốn hiển thị ảnh từ notebook output.
 - `jupytext` nếu muốn pair/sync `.py` với `.ipynb`.
 - `kaggle` CLI nếu muốn dùng các lệnh Kaggle kernel.
@@ -140,6 +149,31 @@ Phím chung hiện có:
 
 - `<Esc>`: bỏ highlight của search.
 - `<leader>tt`: bật/tắt nền trong suốt của `catppuccin`.
+- `<leader>ts`: đồng bộ lại light/dark mode và palette màu theo Kitty hiện tại.
+- `<leader>tl`: ép theme sang light mode (`latte`).
+- `<leader>td`: ép theme sang dark mode (`mocha`).
+
+Lệnh chung:
+
+- `:CP`: chèn template C++ competitive programming. Nếu buffer không rỗng,
+  Neovim sẽ hỏi xác nhận trước khi thay nội dung.
+
+## Theme
+
+Theme entrypoint nằm ở `lua/config/plugins/colorscheme.lua`.
+
+Thứ tự phát hiện light/dark mode hiện tại:
+
+- `vim.g.theme_background` nếu được đặt là `light` hoặc `dark`;
+- biến môi trường `NVIM_THEME_BACKGROUND`;
+- background trong `~/.config/kitty/kitty.conf` nếu đang chạy trong Kitty;
+- `COLORFGBG`;
+- fallback về `dark`.
+
+Khi sync với Kitty đang bật, config đọc cả file `include` trong `kitty.conf` và
+áp các màu như `foreground`, `background`, `color1`... lên các highlight nhóm
+cơ bản. `:ThemeLight` và `:ThemeDark` sẽ tắt sync Kitty cho session hiện tại;
+`:ThemeSyncTerminal` bật lại sync terminal.
 
 ## LSP
 
@@ -250,3 +284,4 @@ khi bạn tự override `vim.g.kaggle_output_dirname`.
 - Repo này hiện không có bước bootstrap dependency tự động; các binary như
   `jupytext`, `kaggle`, `magick` hay browser cho terminal image rendering cần có
   sẵn trong máy nếu bạn dùng các tính năng đó.
+- `nvim.log` là log runtime cục bộ, không phải phần mô tả cấu hình nguồn.
