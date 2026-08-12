@@ -23,6 +23,11 @@ local lsp_servers = {
   marksman = {},
 }
 
+local cpp_include_dirs = {
+  vim.fn.expand("~/School/competitive_programming"),
+  "/usr/local/include",
+}
+
 pack.add({
   "https://github.com/neovim/nvim-lspconfig",
   "https://github.com/mason-org/mason.nvim",
@@ -51,7 +56,7 @@ if has_blink then
 end
 
 for server, config in pairs(lsp_servers) do
-  vim.lsp.config(server, {
+  local server_config = {
     capabilities = capabilities,
     settings = config,
 
@@ -66,7 +71,28 @@ for server, config in pairs(lsp_servers) do
         desc = "vim.lsp.buf.format()",
       })
     end,
-  })
+  }
+
+  if server == "clangd" then
+    local fallback_flags = { "-std=c++20" }
+    for _, include_dir in ipairs(cpp_include_dirs) do
+      if vim.fn.isdirectory(include_dir) == 1 then
+        table.insert(fallback_flags, "-I" .. include_dir)
+      end
+    end
+
+    server_config.cmd = {
+      "clangd",
+      "--background-index",
+      "--clang-tidy",
+      "--query-driver=/usr/bin/g++,/usr/bin/gcc,/usr/local/bin/g++,/usr/local/bin/gcc",
+    }
+    server_config.init_options = {
+      fallbackFlags = fallback_flags,
+    }
+  end
+
+  vim.lsp.config(server, server_config)
 
   vim.lsp.enable(server)
 end

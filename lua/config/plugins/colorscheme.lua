@@ -5,7 +5,7 @@ pack.add({
 })
 
 local has_catppuccin, catppuccin = pcall(require, "catppuccin")
-local transparent_background = false
+local transparent_background = true
 local forced_background = vim.g.theme_background
 local sync_with_kitty = vim.g.theme_sync_with_kitty ~= false
 
