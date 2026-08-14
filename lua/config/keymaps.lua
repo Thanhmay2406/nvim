@@ -2,11 +2,6 @@
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 local cpp_template = {
-  "/**",
-  " *    author:  dangthanhmay",
-  " *    \"My special ability is nothing special\"",
-  "**/",
-  "",
   "#include <bits/stdc++.h>",
   "",
   "using namespace std;",

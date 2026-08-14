@@ -1,0 +1,139 @@
+# Neovim Config
+
+Personal Neovim configuration for programming, competitive programming,
+Markdown, notebook/Jupyter, and Kaggle workflows. The repo uses small Lua
+modules under `lua/config`, loads plugins with `vim.pack.add`, and keeps plugin
+revisions in `nvim-pack-lock.json`.
+
+## Highlights
+
+- Catppuccin theme with automatic light/dark detection from the terminal. When
+  running in Kitty, it prefers the palette from `~/.config/kitty/kitty.conf` so
+  Neovim closely follows the active Kitty theme.
+- LSP for Lua, Python, C/C++, Rust, Go, and Markdown through Mason,
+  `nvim-lspconfig`, and `mason-tool-installer`.
+- Completion with `blink.cmp`, including familiar keymaps for selecting
+  suggestions, documentation, and snippets.
+- Telescope for files, buffers, grep, help, and man pages.
+- Treesitter for Lua, Vim, C/C++, Python, JavaScript/TypeScript, HTML/CSS, JSON,
+  Markdown, YAML, and LaTeX.
+- Markdown rendering with `render-markdown.nvim` and image support through the
+  Kitty backend.
+- Python notebook workflow with `molten-nvim`, `image.nvim`, `jupytext`,
+  Jupyter server URLs, and Kaggle kernel helpers.
+- `:CP` command for inserting a competitive programming C++ template into the
+  current buffer.
+
+## Structure
+
+```text
+init.lua
+lua/config/
+  globals.lua        leader key and optional local Python host
+  options.lua        core editor options
+  diagnostics.lua    diagnostic icons and virtual text
+  keymaps.lua        shared keymaps and custom commands
+  pack.lua           wrapper for vim.pack.add
+  plugins/           plugin group configuration
+nvim-pack-lock.json  plugin lockfile
+```
+
+## Installation
+
+Minimum requirements are Neovim with `vim.pack` support, Git, and the external
+tools needed for the workflows you use:
+
+- `rg` for Telescope live grep.
+- Kitty and ImageMagick for image rendering in notebooks/Markdown.
+- `jupytext`, `kaggle`, and Jupyter for notebook/Kaggle commands.
+- `.venv-nvim/bin/python` if you want a dedicated Python host for Neovim. If it
+  does not exist, the config skips it.
+
+Clone or place this repo at `~/.config/nvim`, then open Neovim. Plugins are
+declared through `vim.pack.add` and loaded by module.
+
+## Keymaps And Commands
+
+The leader key is `Space`.
+
+### Theme
+
+- `<leader>tt`: toggle transparent background.
+- `<leader>ts` or `:ThemeSyncTerminal`: sync the theme with terminal/Kitty.
+- `<leader>tl` or `:ThemeLight`: force Catppuccin Latte.
+- `<leader>td` or `:ThemeDark`: force Catppuccin Mocha.
+
+### Search
+
+- `<leader>sp`: Telescope builtin pickers.
+- `<leader>sb`: buffers.
+- `<leader>sf`: files.
+- `<leader>sw`: word under cursor.
+- `<leader>sg`: live grep.
+- `<leader>sr`: resume the latest picker.
+- `<leader>sh`: help tags.
+- `<leader>sm`: man pages.
+
+### LSP
+
+- `grd`: go to definition.
+- `grf`: format buffer through LSP.
+
+### Competitive Programming
+
+- `:CP`: insert the C++ template and set the filetype to `cpp`.
+
+### Treesitter
+
+- `:TSInstallConfigured`: install the parsers declared in
+  `lua/config/plugins/treesitter.lua`.
+
+### Jupyter And Jupytext
+
+Jupyter/Kaggle keymaps are only attached in Python buffers.
+
+- `<leader>ji`: `MoltenInit`.
+- `<leader>ju`: connect Molten to a Jupyter server URL.
+- `<leader>jU`: save the Jupyter server URL for the current session.
+- `<leader>jc`: run the current `# %%` cell.
+- `<leader>jl`: run the current line.
+- `<leader>jr`: rerun the active Molten cell.
+- `<leader>jo`: show output.
+- `<leader>je`: enter the output window.
+- `<leader>jx`: interrupt execution.
+- `<leader>jd`: delete the Molten cell.
+- `<leader>jv`: run visual selection.
+- `<leader>jp`: pair notebook with Jupytext.
+- `<leader>js`: sync the notebook pair.
+- `<leader>jb`: export to `.ipynb`.
+- `]j` / `[j`: jump to the next/previous cell marker.
+
+Related commands:
+
+- `:JupytextPair`
+- `:JupytextSync`
+- `:JupytextToIpynb`
+- `:JupyterRunCell`
+- `:JupyterServerSet`
+- `:JupyterServerConnect`
+
+### Kaggle
+
+- `<leader>ki` or `:KaggleKernelInit`: create `kernel-metadata.json`.
+- `<leader>kp` or `:KaggleKernelPush`: push the notebook directory and run the
+  kernel.
+- `<leader>kl` or `:KaggleKernelPull`: pull a notebook from Kaggle.
+- `<leader>ks` or `:KaggleKernelStatus`: show kernel status.
+- `<leader>kf` or `:KaggleKernelFiles`: list output files.
+- `<leader>ko` or `:KaggleKernelOutput`: download output into `kaggle-output/`.
+
+If `owner/slug` is not provided, the helper tries to read `id` from the nearest
+`kernel-metadata.json` for the current buffer, or prompts for it manually.
+
+## Notes
+
+- The config prefers fail-soft behavior: missing plugins or external tools show
+  a Neovim notification instead of breaking the whole startup.
+- `nvim.log` is currently in the repo, but it is not a core configuration file.
+- The modules in `lua/config/plugins` are the best source of truth when the
+  README needs to be updated for the current config state.
